@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CreatorController;
 use App\Http\Controllers\PostController;
 use App\Models\User;
@@ -10,6 +11,8 @@ use Laravel\Socialite\Facades\Socialite;
 Route::get('/', [PostController::class, 'index'])->name('posts.index');
 
 Route::get('posts/trashed', [PostController::class, "trashed"])->name('posts.trashed');
+
+Route::post('posts/{post}/comment', [CommentController::class, 'storeComment'])->name('posts.comment');
 
 Route::get('posts/{post}/restore', [PostController::class, 'restore'])->name('posts.restore');
 

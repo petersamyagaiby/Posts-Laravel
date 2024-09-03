@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -47,7 +48,7 @@ class PostController extends Controller
                     "min:10",
                     "max:255",
                 ],
-                "image" => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                "image" => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
             ]
         );
 
@@ -55,7 +56,7 @@ class PostController extends Controller
             // return "error";
             return response()->json(
                 [
-                    "message" => "Validation error",
+                    "message" => "Validation Api Error",
                     "errors" => $post_validator->errors()
                 ],
                 422
@@ -64,7 +65,7 @@ class PostController extends Controller
 
         $data = $request->all();
         $userId = Auth::id();
-        if (Post::where("user_id", $userId)->count() >= 3) {
+        if (Post::where("user_id", $userId)->withTrashed()->count() >= 3) {
             return response()->json(["message" => "Cannot create more than 3 posts"], 422);
         }
         $image_path = null;
@@ -143,12 +144,17 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        $filePath = $post->image;
-        if ($filePath) {
-            if (Storage::disk("posts_images")->exists($filePath))
-                Storage::disk('posts_images')->delete($post->image);
+        if (Gate::allows("delete-post", $post)) {
+
+            $filePath = $post->image;
+            if ($filePath) {
+                if (Storage::disk("posts_images")->exists($filePath))
+                    Storage::disk('posts_images')->delete($post->image);
+            }
+            $post->delete();
+            // $post->forceDelete();
+            return response()->json(["message" => "Deleted Successfully"], 204);
         }
-        $post->delete();
-        return response()->json(["deleted" => "Deleted Successfully"], 204);
+        return response()->json(["message" => "You can't delete this post"], 422);
     }
 }
